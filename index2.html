@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+        integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+        crossorigin="" />
+    <style>
+        :root {
+            --animation_type: anim_2;
+            /* 1-4 */
+
+            --c_width: 100vw;
+            --c_height: 100vh;
+            --ground_width: 80vw;
+            --ground_height: 80vw;
+
+            --tree_shadow_width: 12vw;
+            --tree_shadow_blur: blur(3vw);
+            --tree_shadow_opacity: 0.5;
+
+            --tree_width: 50vw;
+            --tree_height: 60vw;
+        }
+
+        /* matrix3d playground: */
+
+        .sample-tree {
+            transform: matrix3d(1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1);
+            animation: var(--animation_type) 4s ease-in-out infinite alternate;
+            /* transform-origin: 0vw 0vw 0vw; */
+        }
+
+        body {
+            background-color: #2c2c2c;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        .orbitbinder {
+            transform-origin: calc(var(--c_width)/2) calc(var(--c_height)/2);
+            transform-style: preserve-3d;
+        }
+
+        .sample-container {
+            width: var(--c_width);
+            height: var(--c_height);
+            /* perspective: 100vw; */
+        }
+
+        #sample-ground {
+            position: absolute;
+            width: var(--ground_width);
+            height: var(--ground_height);
+            /* background-image: url('https://raw.githubusercontent.com/dawidd4/CSS-Tree-3D-animation/master/grass.jpg'); */
+            background-size: 30vw 30vw;
+            /*put ground to the center and 10vw down: */
+            transform: translate3d(calc(50vw - var(--ground_width)/2),
+                calc(50vh - var(--ground_height)/2),
+                -10vw);
+            transform-style: preserve-3d;
+        }
+
+        #sample-ground::before {
+            content: "";
+            display: block;
+            position: absolute;
+            border-radius: 50%;
+            filter: var(--tree_shadow_blur);
+            opacity: var(--tree_shadow_opacity);
+            width: var(--tree_shadow_width);
+            height: var(--tree_shadow_width);
+            transform: translate(calc((var(--ground_width) - var(--tree_shadow_width))/2),
+                calc((var(--ground_height) - var(--tree_shadow_width))/2));
+            background-color: black;
+        }
+
+        /*place the tree to the center*/
+        .sample-tree {
+            position: absolute;
+            left: calc(var(--ground_width)/2);
+            top: calc(var(--ground_height)/2);
+            /*transform: translate(
+    calc(var(--ground_width)/2),
+    calc(var(--ground_height)/2)
+  );*/
+            transform-style: preserve-3d;
+        }
+
+        .sample-tree::before,
+        .sample-tree::after {
+            content: "";
+            display: block;
+            position: absolute;
+            width: var(--tree_width);
+            height: var(--tree_height);
+            transform-origin: bottom;
+            background: url('https://raw.githubusercontent.com/dawidd4/CSS-Tree-3D-animation/master/tree.png') no-repeat;
+            background-size: 100% 100%;
+        }
+
+        .sample-tree::before {
+            transform: translate(calc(0vw - var(--tree_width)/2),
+                calc(0vw - var(--tree_height))) rotateX(270deg);
+        }
+
+        .sample-tree::after {
+            transform: translate(calc(0vw - var(--tree_width)/2),
+                calc(0vw - var(--tree_height))) rotateX(270deg) rotateY(90deg);
+        }
+
+        @keyframes anim_2 {
+            from {
+                transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, .0625, 0, 1, 0, 0, 0, 0, 1);
+            }
+
+            to {
+                transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, -.0625, 0, 1, 0, 0, 0, 0, 1);
+            }
+        }
+
+       
+    </style>
+</head>
+
+<body>
+    <div class="sample-container">
+        <div class="orbitbinder">
+            <div id="sample-ground">
+                <!-- <div id="sample-tree"></div> -->
+            </div>
+        </div>
+    </div>
+
+</body>
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+    integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+    crossorigin=""></script>
+
+<script>
+    var wrap = document.getElementsByClassName("orbitbinder")[0];
+    var begX, begY, prevX, prevY, newX, newY, dv;
+    newX = 13; newY = 67;
+    document.onmousedown = beginD;
+    document.onmouseup = stopD;
+
+    function beginD(e) {
+        dv = wrap.parentNode.offsetWidth >> 8;
+        begX = e.clientX / (dv != 0 ? dv : dv = 1);
+        begY = e.clientY / dv;
+        prevX = newX;
+        prevY = newY;
+        drag = true;
+        document.onmousemove = letsD;
+        return false;
+    }
+
+    function letsD(e) {
+        if (!drag) return;
+        newX = (prevY > 0 && prevY < 180) ? (prevX - (e.clientX / dv) + begX) : (prevX + (e.clientX / dv) - begX);
+        newY = prevY - (e.clientY / dv) + begY;
+        wrap.style.transform = "rotateX(" + newY + "deg) rotateZ(" + newX + "deg)";
+        return false;
+    }
+
+    function stopD() {
+        drag = false;
+        rotReset();
+    }
+
+    function rotReset() {
+        if (newX >= 360 || newX < 0) newX -= 360 * Math.floor(newX / 360);
+        if (newY >= 360 || newY < 0) newY -= 360 * Math.floor(newY / 360);
+        wrap.style.transform = "rotateX(" + newY + "deg) rotateZ(" + newX + "deg)";
+    }
+
+    wrap.style.transform = "rotateX(" + (newY += .11) + "deg) rotateZ(" + (newX += .11) + "deg)";
+
+    var mymap = L.map('sample-ground').setView([51.505, -0.09], 13);
+
+    var greenIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/dawidd4/CSS-Tree-3D-animation/master/tree.png',
+        iconSize:     [38, 95], // size of the icon
+        iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+        className:'marker'
+    });
+
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+        maxZoom: 18,
+        id: 'mapbox.streets',
+        accessToken: 'pk.eyJ1IjoidWQtdWQiLCJhIjoiY2p1dGl6cWxiMDVmNzQzbjRpOGR3M2k0bCJ9.RY30VwafJdCp-bov1JZBQg'
+    }).addTo(mymap);
+    
+    L.marker([51.5, -0.09], {icon: greenIcon}).addTo(mymap);
+
+</script>
+
+</html>

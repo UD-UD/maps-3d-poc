@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+        integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+        crossorigin="" />
+    <style>
+        #mapid {
+            height: 500px;
+            width: 500px;
+            /* position: relative; */
+
+        }
+        .orbitbinder {
+            /* transform-origin: 250px 250px; */
+            perspective: 1200;
+            -webkit-perspective: 1200;
+        }
+
+        .orbitbinder *{
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+        }
+
+        #mapid{
+            transform: rotateX(60deg);
+            overflow: visible;
+            margin: 0% 40%
+        }
+
+        .marker{
+            -webkit-transform: translateZ(0.1px);
+            -webkit-transform-origin: bottom center;
+            -webkit-transform: rotateX(270deg);
+            background-color: brown;
+            height: 30px;
+            width: 5px;
+        }
+
+
+        
+
+    </style>
+</head>
+
+<body>
+    <div class="orbitbinder">
+        <div id="mapid"></div>
+    </div>
+    
+</body>
+<!-- Make sure you put this AFTER Leaflet's CSS -->
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+    integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+    crossorigin=""></script>
+
+<script>
+    var mymap = L.map('mapid',{zoomControl : false}).setView([51.505, -0.09], 13);
+
+    mymap.scrollWheelZoom.disable();
+    mymap.dragging.disable();
+        
+    // var greenIcon = L.icon({
+    //     iconUrl: 'https://raw.githubusercontent.com/dawidd4/CSS-Tree-3D-animation/master/tree.png',
+    //     iconSize:     [38, 95], // size of the icon
+    //     iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+    //     className:'marker'
+    // });
+
+    var myIcon = L.divIcon({
+		className:'',
+		html:'<div class="marker"></div>',
+		iconSize: [35, 46]
+	});
+
+
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+        zoom: 18,
+        id: 'mapbox.streets',
+        accessToken: 'pk.eyJ1IjoidWQtdWQiLCJhIjoiY2p1dGl6cWxiMDVmNzQzbjRpOGR3M2k0bCJ9.RY30VwafJdCp-bov1JZBQg'
+    }).addTo(mymap);
+
+    L.marker([51.5, -0.09], {icon: myIcon}).addTo(mymap);
+
+</script>
+
+</html>
