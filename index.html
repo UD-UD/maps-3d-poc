@@ -1,15 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
-    <link href='https://api.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+        integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+        crossorigin="" />
+    <style>
+        .muze-3d {
+            perspective: 1200;
+            -webkit-perspective: 1200;
+        }
+
+        .muze-3d * {
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+        }
+
+        .leaflet-container {
+            background: none;
+        }
+
+        #mapid {
+            height: 500px;
+            width: 500px;
+            /* position: relative; */
+
+        }
+
+        .orbitbinder {
+            transform: rotateX(60deg);
+            transform-origin: center;
+        }
+
+        #mapid {
+            overflow: visible;
+            margin: 0% 40%
+        }
+
+        .marker {
+            -webkit-transform: translateZ(0.1px);
+            -webkit-transform-origin: bottom center;
+            -webkit-transform: rotateX(270deg);
+            background-color:#e6194b;
+            height: 30px;
+            width: 5px;
+        }
+    </style>
 </head>
+
 <body>
-    <div id='map' style='width: 800px; height: 800px;'></div>
+    <div class="muze-3d">
+        <div class="orbitbinder">
+            <div id="mapid"></div>
+        </div>
+    </div>
+
 </body>
-<script src='https://static-assets.mapbox.com/gl-pricing/dist/mapbox-gl.js'></script>
-<script src="./index.js"></script>
+<!-- Make sure you put this AFTER Leaflet's CSS -->
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+    integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+    crossorigin=""></script>
+<script src='./leaflet.markercluster.js'></script>
+<script>
+
+    var  colorPalate = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
+    
+    var mymap = L.map('mapid').setView([42.35, -71.08], 13);
+
+    mymap.dragging.disable();
+
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+        zoom: 18,
+        id: 'mapbox.streets',
+        accessToken: 'pk.eyJ1IjoidWQtdWQiLCJhIjoiY2p1dGl6cWxiMDVmNzQzbjRpOGR3M2k0bCJ9.RY30VwafJdCp-bov1JZBQg'
+    }).addTo(mymap);
+
+    fetch('./neighborhoods.geojson')
+        .then((data) => {
+            return data.json()
+        })
+        .then((data) => {
+            L.geoJson(data, {
+                style: function (feature) {
+                    var fillColor,
+                        density = feature.properties.density;
+                    if (density > 80) fillColor = "#006837";
+                    else if (density > 40) fillColor = "#31a354";
+                    else if (density > 20) fillColor = "#78c679";
+                    else if (density > 10) fillColor = "#c2e699";
+                    else if (density > 0) fillColor = "#ffffcc";
+                    else fillColor = "#f7f7f7";
+                    return { color: "#999", weight: 1, fillColor: fillColor, fillOpacity: .6 };
+                }
+            }).addTo(mymap);
+        });
+
+    fetch('./rodents.geojson')
+        .then((data) => {
+            return data.json()
+        })
+        .then((data) => {
+            var clusters = L.markerClusterGroup({
+                iconCreateFunction: function (cluster) {
+                    var height = cluster.getChildCount();
+                    var color = colorPalate [height % 20];
+                    var myIcon = L.divIcon({
+                        className: '',
+                        html: `<div class="marker" style=height:${height}px;background-color:${color}></div>`,
+                        iconSize: [35, 46]
+                    });
+
+                    return myIcon;
+                }
+            });
+            var rodents = L.geoJson(data, {
+                pointToLayer: function (feature, latlng) {
+                    var marker = L.marker(latlng);
+                    return marker;
+                }
+            });
+            clusters.addLayer(rodents);
+            mymap.addLayer(clusters);
+        });
+    // L.marker([51.5, -0.09], { icon: myIcon }).addTo(mymap);
+
+
+    (function () {
+        var wrap = document.getElementsByClassName("orbitbinder")[0];
+        var begX, begY, prevX, prevY, newX, newY, dv;
+        newX = 13; newY = 67;
+        document.onmousedown = beginD;
+        document.onmouseup = stopD;
+
+        function beginD(e) {
+            dv = wrap.parentNode.offsetWidth >> 8;
+            begX = e.clientX / (dv != 0 ? dv : dv = 1);
+            begY = e.clientY / dv;
+            prevX = newX;
+            prevY = newY;
+            drag = true;
+            document.onmousemove = letsD;
+            return false;
+        }
+
+        function letsD(e) {
+            if (!drag) return;
+            newX = (prevY > 0 && prevY < 180) ? (prevX - (e.clientX / dv) + begX) : (prevX + (e.clientX / dv) - begX);
+            newY = prevY - (e.clientY / dv) + begY;
+            wrap.style.transform = "rotateX(" + newY + "deg) rotateZ(" + newX + "deg)";
+            return false;
+        }
+
+        function stopD() {
+            drag = false;
+            rotReset();
+        }
+
+        function rotReset() {
+            if (newX >= 360 || newX < 0) newX -= 360 * Math.floor(newX / 360);
+            if (newY >= 360 || newY < 0) newY -= 360 * Math.floor(newY / 360);
+            wrap.style.transform = "rotateX(" + newY + "deg) rotateZ(" + newX + "deg)";
+        }
+
+        wrap.style.transform = "rotateX(0deg)";
+    })();
+
+</script>
+
 </html>
