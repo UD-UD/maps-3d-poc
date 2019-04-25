@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Display a map</title>
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-geo/1.9.1/d3-geo.min.js"></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 500px;
+            height: 500px;
+        }
+
+        #map svg {
+            width: 500px;
+            height: 500px;
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='map'></div>
+    <script>
+
+var  colorPalate = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
+    
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoidWQtdWQiLCJhIjoiY2p1dGl6cWxiMDVmNzQzbjRpOGR3M2k0bCJ9.RY30VwafJdCp-bov1JZBQg';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [-79.0745027481, 35.9100670923],
+            zoom: 12,
+            pitch: 60
+        });
+
+        function project(d) {
+            return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
+        }
+
+        function projectPoint(lon, lat) {
+            var point = map.project(new mapboxgl.LngLat(lon, lat));
+            this.stream.point(point.x, point.y);
+        }
+
+
+        var canvas = map.getCanvasContainer();
+
+        var svg = d3.select(canvas).append("svg");
+
+        //Projection function
+        var transform = d3.geoTransform({ point: projectPoint });
+
+        console.log(transform)
+
+        var path = d3.geoPath().projection(transform);
+
+        var pathFunction = (d) => {
+                        const { x, y } = project(d.geometry.coordinates);
+                        var path = rectPath(x,y,4,Math.ceil(Math.random()*100));
+                        console.log(path)
+                        return path;
+            }
+
+        function rectPath(x, y, w, h) {
+            const bx = x - (w / 2);
+            const by = y - h;
+            return `M${bx}, ${by} L${bx + w}, ${by} L${bx + w}, ${by + h} L ${bx}, ${by + h} z`;
+        }
+
+
+        fetch('./bicycle-crash-data-chapel-hill-region.geojson')
+            .then((data) => data.json())
+            .then((data) => {
+
+                var points = svg.selectAll("path")
+                    .data(data.features.slice(0,100))
+                    .enter()
+                    .append("path")
+                    .attr("class", (d) => d.geometry.coordinates)
+                    .attr("d", pathFunction)
+                    .attr('fill',`${colorPalate[Math.ceil(Math.random()*100 % 20 )]}`)
+
+
+                function update() {
+                    points.attr("d", pathFunction);
+                }
+
+                update();
+                map.on("viewreset", update);
+                map.on("move", update);
+                map.on("moveend", update);
+            })
+
+    </script>
+</body>
+
+</html>

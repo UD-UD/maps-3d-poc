@@ -20,6 +20,11 @@
             -webkit-transform-style: preserve-3d;
         }
 
+        .leaflet-control-container {
+            transform-style:flat !important;
+            -webkit-transform-style: flat !important;
+        }
+
         .leaflet-container {
             background: none;
         }
@@ -71,7 +76,7 @@
     
     var mymap = L.map('mapid').setView([42.35, -71.08], 13);
 
-    mymap.dragging.disable();
+    // mymap.dragging.disable();
 
     L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
         zoom: 18,
