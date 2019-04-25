@@ -45,7 +45,7 @@ var  colorPalate = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911
             style: 'mapbox://styles/mapbox/streets-v11',
             center: [-79.0745027481, 35.9100670923],
             zoom: 12,
-            pitch: 60
+            // pitch: 60
         });
 
         function project(d) {
@@ -61,6 +61,7 @@ var  colorPalate = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911
         var canvas = map.getCanvasContainer();
 
         var svg = d3.select(canvas).append("svg");
+        svg.attr('id','viz-layer')
 
         //Projection function
         var transform = d3.geoTransform({ point: projectPoint });
@@ -88,21 +89,26 @@ var  colorPalate = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911
             .then((data) => {
 
                 var points = svg.selectAll("path")
-                    .data(data.features.slice(0,100))
+                    .data(data.features)
                     .enter()
                     .append("path")
-                    .attr("class", (d) => d.geometry.coordinates)
-                    .attr("d", pathFunction)
                     .attr('fill',`${colorPalate[Math.ceil(Math.random()*100 % 20 )]}`)
+                    .attr("class",'marker')
+                    .attr("d", pathFunction)
 
 
                 function update() {
+                    d3.select('#viz-layer').style('visibility','visible')
                     points.attr("d", pathFunction);
+                }
+
+                function hideMarker(){
+                   d3.select('#viz-layer').style('visibility','hidden')
                 }
 
                 update();
                 map.on("viewreset", update);
-                map.on("move", update);
+                map.on("move", hideMarker);
                 map.on("moveend", update);
             })
 
