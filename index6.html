@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Display a map</title>
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-geo/1.9.1/d3-geo.min.js"></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .muze-3d {
+            perspective: 1200;
+            -webkit-perspective: 1200;
+            margin: 200px
+        }
+
+        .muze-3d * {
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 500px;
+            height: 500px;
+            overflow: visible;
+        }
+
+        .orbitBinder{
+            transform: rotateX(60deg);
+            transform-origin: center;
+        }
+
+        #viz-layer {
+            width: 500px;
+            height: 500px;
+            position: relative;
+        }
+        .marker{
+            -webkit-transform: translateZ(0.1px);
+            -webkit-transform-origin: bottom center;
+            -webkit-transform: rotateX(-90deg);
+           position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+    <div class='muze-3d'>
+        <div class="orbitBinder">
+            <div id='map'></div>
+        </div>
+    </div>
+    <script>
+
+var  colorPalate = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
+    
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoidWQtdWQiLCJhIjoiY2p1dGl6cWxiMDVmNzQzbjRpOGR3M2k0bCJ9.RY30VwafJdCp-bov1JZBQg';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [-79.0745027481, 35.9100670923],
+            zoom: 12,
+            // pitch: 60
+        });
+
+        // map.addControl(new mapboxgl.NavigationControl());
+
+        function project(d) {
+            return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
+        }
+
+        function projectPoint(lon, lat) {
+            var point = map.project(new mapboxgl.LngLat(lon, lat));
+            this.stream.point(point.x, point.y);
+        }
+
+
+        var canvas = map.getCanvasContainer();
+
+        var vizlayer = d3.select(canvas).append("div");
+        vizlayer.attr('id','viz-layer')
+
+        //Projection function
+        var transform = d3.geoTransform({ point: projectPoint });
+
+        console.log(transform)
+
+        var path = d3.geoPath().projection(transform);
+
+        var pathFunction = (d) => {
+                        const { x, y } = project(d.geometry.coordinates);
+                        var path = rectPath(0,0,4,Math.ceil(Math.random()*100));
+                        console.log(path)
+                        return path;
+            }
+
+        function rectPath(x, y, w, h) {
+            const bx = x - (w / 2);
+            const by = y - h;
+            return `M${bx}, ${by} L${bx + w}, ${by} L${bx + w}, ${by + h} L ${bx}, ${by + h} z`;
+        }
+
+        var styleFunction = (d,i) => {
+            let display,
+            top,
+            left,
+            width,
+            height,
+            backgroundColor;
+            const { x, y } = project(d.geometry.coordinates);
+
+            if(x > 400 || y > 400)
+                display = 'none';
+            else if(x < 0 || y < 0)
+                display = 'none';
+            else
+                display = 'block';
+            
+            top = `${y}px`;
+            left = `${x}px`;
+            width = `2px`;
+            height = `${Math.ceil(Math.random()*100)}px`
+            backgroundColor = colorPalate[i % 20 ]
+            
+            return `display:${display};top:${top};left:${left};width:${width};height:${height};background-color:${backgroundColor}`
+        }
+
+
+        fetch('./bicycle-crash-data-chapel-hill-region.geojson')
+            .then((data) => data.json())
+            .then((data) => {
+
+                var points = vizlayer.selectAll("div")
+                    .data(data.features)
+                    .enter()
+                    .append("div")
+                    .attr('class','marker')
+                    // .style('display',(d)=>{
+                    //     const { x, y } = project(d.geometry.coordinates);
+                    //     if(x > 500 || y > 500)
+                    //         return 'none';
+                    //     else if(x < 0 || y < 0)
+                    //         return 'none';
+                    //     else
+                    //         return 'block';
+                    // })
+                    // .style('top',(d)=>{
+                    //     const { x, y } = project(d.geometry.coordinates);
+                    //     return `${y}px`;
+                    // })
+                    // .style('left',(d)=>{
+                    //     const { x, y } = project(d.geometry.coordinates);
+                    //     return `${x}px`;
+                    // })
+                    // .style('width','2px')
+                    // .style('height','10px')
+                    // .style({
+                    //   top : styleFunction
+                    // })
+                    .attr('style', (d,i)=> styleFunction(d,i))
+
+
+                function update() {
+                    d3.select('#viz-layer').style('visibility','visible')
+                    points.attr('style', (d,i)=> styleFunction(d,i))
+                }
+
+                function hideMarker(){
+                   d3.select('#viz-layer').style('visibility','hidden')
+                }
+
+                update();
+                map.on("viewreset", update);
+                map.on("move", update);
+                map.on("moveend", update);
+            });
+        
+
+        (function () {
+        var wrap = document.getElementsByClassName("orbitBinder")[0];
+        var begX, begY, prevX, prevY, newX, newY, dv;
+        newX = 13; newY = 67;
+        document.onmousedown = beginD;
+        document.onmouseup = stopD;
+
+        function beginD(e) {
+            dv = wrap.parentNode.offsetWidth >> 8;
+            begX = e.clientX / (dv != 0 ? dv : dv = 1);
+            begY = e.clientY / dv;
+            prevX = newX;
+            prevY = newY;
+            drag = true;
+            document.onmousemove = letsD;
+            return false;
+        }
+
+        function letsD(e) {
+            if (!drag) return;
+            newX = (prevY > 0 && prevY < 180) ? (prevX - (e.clientX / dv) + begX) : (prevX + (e.clientX / dv) - begX);
+            newY = prevY - (e.clientY / dv) + begY;
+            wrap.style.transform = "rotateX(" + newY + "deg) rotateZ(" + newX + "deg)";
+            return false;
+        }
+
+        function stopD() {
+            drag = false;
+            rotReset();
+        }
+
+        function rotReset() {
+            if (newX >= 360 || newX < 0) newX -= 360 * Math.floor(newX / 360);
+            if (newY >= 360 || newY < 0) newY -= 360 * Math.floor(newY / 360);
+            wrap.style.transform = "rotateX(" + newY + "deg) rotateZ(" + newX + "deg)";
+        }
+
+        wrap.style.transform = "rotateX(0deg)";
+    })();
+        
+    </script>
+</body>
+
+</html>
