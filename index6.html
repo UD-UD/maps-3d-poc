@@ -146,28 +146,6 @@ var  colorPalate = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911
                     .enter()
                     .append("div")
                     .attr('class','marker')
-                    // .style('display',(d)=>{
-                    //     const { x, y } = project(d.geometry.coordinates);
-                    //     if(x > 500 || y > 500)
-                    //         return 'none';
-                    //     else if(x < 0 || y < 0)
-                    //         return 'none';
-                    //     else
-                    //         return 'block';
-                    // })
-                    // .style('top',(d)=>{
-                    //     const { x, y } = project(d.geometry.coordinates);
-                    //     return `${y}px`;
-                    // })
-                    // .style('left',(d)=>{
-                    //     const { x, y } = project(d.geometry.coordinates);
-                    //     return `${x}px`;
-                    // })
-                    // .style('width','2px')
-                    // .style('height','10px')
-                    // .style({
-                    //   top : styleFunction
-                    // })
                     .attr('style', (d,i)=> styleFunction(d,i))
 
 
